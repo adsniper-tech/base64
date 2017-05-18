@@ -35,4 +35,4 @@ target_compile_options(${LIB} PRIVATE -Wno-implicit-fallthrough)
 
 #Install
 install(TARGETS ${LIB} ARCHIVE DESTINATION lib CONFIGURATIONS Release)
-install(FILES include/libbase64.h DESTINATION include/${LIB})
+install(FILES include/libbase64.h DESTINATION include)
