@@ -115,7 +115,7 @@ void codec_choose (struct codec *, int flags);
 
 // These tables are used by all codecs
 // for fallback plain encoding/decoding:
-extern const uint8_t base64_table_enc[];
+extern const uint8_t *base64_table_enc;
 extern const uint8_t base64_table_dec[];
 
 extern const uint32_t base64_table_dec_d0[];

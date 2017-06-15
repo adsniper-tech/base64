@@ -67,13 +67,18 @@
 	BASE64_DEC_FUNCTION(arch);	\
 
 BASE64_CODEC_FUNCS(avx2)
+BASE64_CODEC_FUNCS(avx2_web)
 BASE64_CODEC_FUNCS(neon32)
 BASE64_CODEC_FUNCS(neon64)
 BASE64_CODEC_FUNCS(plain)
 BASE64_CODEC_FUNCS(ssse3)
+BASE64_CODEC_FUNCS(ssse3_web)
 BASE64_CODEC_FUNCS(sse41)
+BASE64_CODEC_FUNCS(sse41_web)
 BASE64_CODEC_FUNCS(sse42)
+BASE64_CODEC_FUNCS(sse42_web)
 BASE64_CODEC_FUNCS(avx)
+BASE64_CODEC_FUNCS(avx_web)
 
 static bool
 codec_choose_forced (struct codec *codec, int flags)
@@ -86,8 +91,13 @@ codec_choose_forced (struct codec *codec, int flags)
 		return false;
 	}
 	if (flags & BASE64_FORCE_AVX2) {
-		codec->enc = base64_stream_encode_avx2;
-		codec->dec = base64_stream_decode_avx2;
+        if (flags & BASE64_WEB_SAFE) {
+            codec->enc = base64_stream_encode_avx2_web;
+            codec->dec = base64_stream_decode_avx2_web;            
+        } else {
+            codec->enc = base64_stream_encode_avx2;
+            codec->dec = base64_stream_decode_avx2;
+        }
 		return true;
 	}
 	if (flags & BASE64_FORCE_NEON32) {
@@ -106,23 +116,43 @@ codec_choose_forced (struct codec *codec, int flags)
 		return true;
 	}
 	if (flags & BASE64_FORCE_SSSE3) {
-		codec->enc = base64_stream_encode_ssse3;
-		codec->dec = base64_stream_decode_ssse3;
+        if (flags & BASE64_WEB_SAFE) {
+            codec->enc = base64_stream_encode_ssse3_web;
+            codec->dec = base64_stream_decode_ssse3_web;
+        } else {
+            codec->enc = base64_stream_encode_ssse3;
+            codec->dec = base64_stream_decode_ssse3;
+        }
 		return true;
 	}
 	if (flags & BASE64_FORCE_SSE41) {
-		codec->enc = base64_stream_encode_sse41;
-		codec->dec = base64_stream_decode_sse41;
+        if (flags & BASE64_WEB_SAFE) {
+            codec->enc = base64_stream_encode_sse41_web;
+            codec->dec = base64_stream_decode_sse41_web;            
+        } else {
+            codec->enc = base64_stream_encode_sse41;
+            codec->dec = base64_stream_decode_sse41;
+        }
 		return true;
 	}
 	if (flags & BASE64_FORCE_SSE42) {
-		codec->enc = base64_stream_encode_sse42;
-		codec->dec = base64_stream_decode_sse42;
+        if (flags & BASE64_WEB_SAFE) {
+            codec->enc = base64_stream_encode_sse42_web;
+            codec->dec = base64_stream_decode_sse42_web;
+        } else {
+            codec->enc = base64_stream_encode_sse42;
+            codec->dec = base64_stream_decode_sse42;
+        }
 		return true;
 	}
 	if (flags & BASE64_FORCE_AVX) {
-		codec->enc = base64_stream_encode_avx;
-		codec->dec = base64_stream_decode_avx;
+        if (flags & BASE64_WEB_SAFE) {
+            codec->enc = base64_stream_encode_avx_web;
+            codec->dec = base64_stream_decode_avx_web;
+        } else {
+            codec->enc = base64_stream_encode_avx;
+            codec->dec = base64_stream_decode_avx;
+        }
 		return true;
 	}
 	return false;

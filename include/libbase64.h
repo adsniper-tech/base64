@@ -19,11 +19,14 @@ extern "C" {
 #define BASE64_FORCE_SSE42	(1 << 6)
 #define BASE64_FORCE_AVX	(1 << 7)
 
+#define BASE64_WEB_SAFE     (1 << 8)
+
 struct base64_state {
 	int eof;
 	int bytes;
 	int flags;
 	unsigned char carry;
+    char endSymbol;
 };
 
 /* Wrapper function to encode a plain string of given length. Output is written

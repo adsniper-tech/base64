@@ -13,6 +13,7 @@
 #include "dec_reshuffle.c"
 #include "enc_reshuffle.c"
 #include "enc_translate.c"
+#include "enc_translate_2.c"
 
 #endif	// __SSSE3__
 
@@ -27,6 +28,17 @@ BASE64_ENC_FUNCTION(ssse3)
 #endif
 }
 
+BASE64_ENC_FUNCTION(ssse3_web)
+{
+    #ifdef __SSSE3__
+    #include "../generic/enc_head.c"
+    #include "enc_loop_2.c"
+    #include "../generic/enc_tail.c"
+    #else
+    BASE64_ENC_STUB
+    #endif
+}
+
 BASE64_DEC_FUNCTION(ssse3)
 {
 #ifdef __SSSE3__
@@ -36,4 +48,15 @@ BASE64_DEC_FUNCTION(ssse3)
 #else
 	BASE64_DEC_STUB
 #endif
+}
+
+BASE64_DEC_FUNCTION(ssse3_web)
+{
+    #ifdef __SSSE3__
+    #include "../generic/dec_head.c"
+    #include "dec_loop_2.c"
+    #include "../generic/dec_tail.c"
+    #else
+    BASE64_DEC_STUB
+    #endif
 }

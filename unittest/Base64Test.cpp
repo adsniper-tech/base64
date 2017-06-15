@@ -12,94 +12,52 @@
 #include <math.h>
 #include <cstring>
 #include <vector>
+#include <algorithm>
+#include <iostream>
 
 
 using std::string;
 using std::vector;
 
-
-static string tobase64_old(const string& message)
-{
-    BIO *bio, *b64;
-    FILE* stream;
-    int encodedSize = 4*ceil((double)message.size()/3);
-    char *buffer = (char *)malloc(encodedSize+1);
-
-    stream = fmemopen(buffer, encodedSize+1, "w");
-    b64 = BIO_new(BIO_f_base64());
-    bio = BIO_new_fp(stream, BIO_NOCLOSE);
-    bio = BIO_push(b64, bio);
-    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Ignore newlines - write everything in one line
-    BIO_write(bio, message.c_str(), message.size());
-    (void) BIO_flush(bio);
-    BIO_free_all(bio);
-    fclose(stream);
-
-    string res(buffer);
-    free(buffer);
-
-    return res;
-}
-
-static string unbase64_old(const string& message)
-{
-    if (message.empty())
-        return "";
-
-    auto message_size = message.size();
-    const char* message_ptr = message.c_str();
-
-    /* добавляем в конец = чтобы размер сообщения был корректен
-     * В бейс64 один символ кодирует 6 бит. Таки образом, паддинг нужен
-     * для выравнивания размера сообщения
-     */
-    string temp;
-    if ((message_size * 6) % 8 != 0) {
-        temp = message;
-
-        while ((temp.size() * 6) % 8 != 0)
-            temp.append("=");
-
-        message_size = temp.size();
-        message_ptr = temp.c_str();
-    }
-
-
-    BIO *b64, *bmem;
-    char* buffer = (char*) (malloc(message_size));
-    memset(buffer, 0, message_size);
-
-    b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    bmem = BIO_new_mem_buf((char*)message_ptr, message_size);
-    bmem = BIO_push(b64, bmem);
-
-    string result;
-    int result_size = BIO_read(bmem, buffer, message_size);
-    if (result_size > 0)
-       result.assign(buffer, result_size);
-
-    BIO_free_all(bmem);
-    free(buffer);
-
-    return result;
-}
-
 static string tobase64_new(const string& message)
 {
     if (message.empty())
         return "";
-
+    
     string out;
-    out.resize(message.size() * 2);
+    out.resize(message.size() * 2 + 2);
     size_t out_size = 0;
-    base64_encode(message.c_str(), message.size(), (char*)out.data(), &out_size, BASE64_FORCE_AVX);
+    base64_encode(message.c_str(), message.size(), (char*)out.data(), &out_size, BASE64_FORCE_AVX | BASE64_WEB_SAFE);
     out.resize(out_size);
+    //std::cout << out.size() << " " << out << std::endl;
 
     return out;
 }
 
-static string unbase64_new(const string& message)
+string tobase64_old(const string& message)
+{
+    if (message.empty())
+        return "";
+    
+    string out;
+    out.resize(message.size() * 2 + 2);
+    size_t out_size = 0;
+    base64_encode(message.c_str(), message.size(), (char*)out.data(), &out_size, BASE64_FORCE_AVX);
+    out.resize(out_size);
+    //std::cout << out.size() << " " << out << std::endl;
+    
+    return out;
+}
+
+string replaceTo(const string &message) {
+    string out(message);
+    std::replace(out.begin(), out.end(), '/', '_');
+    std::replace(out.begin(), out.end(), '+', '-');
+    std::replace(out.begin(), out.end(), '=', '*');
+    return out;
+}
+
+string unbase64_new(const string& message)
 {
     if (message.empty())
         return "";
@@ -107,31 +65,61 @@ static string unbase64_new(const string& message)
     string out;
     out.resize(message.size());
     size_t out_size = 0;
-
-    if (base64_decode(message.c_str(), message.size(), (char*)out.data(), &out_size, BASE64_FORCE_AVX) != 1)
+    
+    if (base64_decode(message.c_str(), message.size(), (char*)out.data(), &out_size, BASE64_FORCE_SSSE3 | BASE64_WEB_SAFE) != 1)
         return "";
 
     out.resize(out_size);
+    //std::cout << out.size() << " " << out << std::endl;
+    
     return out;
 }
 
-static void fill_string_with_random(string& data, size_t size)
+string unbase64_old(const string& message)
 {
-    if (!size)
-    {
-        data.clear();
-        return;
-    }
+    if (message.empty())
+        return "";
+    
+    string out;
+    out.resize(message.size());
+    size_t out_size = 0;
+    
+    if (base64_decode(message.c_str(), message.size(), (char*)out.data(), &out_size, BASE64_FORCE_AVX) != 1)
+        return "";
+    
+    out.resize(out_size);
+    
+    return out;
+}
 
-    static const char alphanum[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
+string minusToSpace(const std::string &message) {
+    std::string in(message);
+    std::replace(in.begin(), in.end(), '-', ' ');
+    return in;
+}
 
-    data.resize(size);
+string replaceFrom(const string &message) {
+    std::string in(message);
+    std::replace(in.begin(), in.end(), '_', '/');
+    std::replace(in.begin(), in.end(), '-', '+');
+    std::replace(in.begin(), in.end(), '*', '=');
+    std::replace(in.begin(), in.end(), ' ', '+');
+    return in;
+}
 
-    for (auto& c: data)
-        c = alphanum[rand() % (sizeof(alphanum) - 1)];
+void minTest1(const std::string &s) {
+    EXPECT_EQ(unbase64_new(tobase64_new(s)), s);
+    EXPECT_EQ(unbase64_new(minusToSpace(tobase64_new(s))), s);
+    EXPECT_EQ(tobase64_new(s), replaceTo(tobase64_new(s)));
+    EXPECT_EQ(unbase64_new(tobase64_new(s)), unbase64_new(replaceTo(tobase64_new(s))));
+}
+
+void minTest2(const std::string &s) {
+    EXPECT_EQ(unbase64_old(tobase64_old(s)), s);
+    EXPECT_EQ(tobase64_old(s).find_first_of("_-*"), string::npos);
+    EXPECT_EQ(tobase64_new(s).find_first_of("/+="), string::npos);
+    EXPECT_EQ(unbase64_new(replaceTo(tobase64_old(s))), s);
+    EXPECT_EQ(unbase64_old(replaceFrom(tobase64_new(s))), s);
 }
 
 TEST(base64, old_new_equal)
@@ -156,89 +144,59 @@ TEST(base64, old_new_equal)
             "nearly the same feelings towards the ocean with me.";
     string s3;
 
-    EXPECT_EQ(tobase64_old(s1), tobase64_new(s1));
-    EXPECT_EQ(tobase64_old(s2), tobase64_new(s2));
-    EXPECT_EQ(tobase64_old(s3), tobase64_new(s3));
-
-    EXPECT_EQ(unbase64_old(tobase64_old(s1)), s1);
-    EXPECT_EQ(unbase64_old(tobase64_old(s2)), s2);
-    EXPECT_EQ(unbase64_old(tobase64_old(s3)), s3);
-
-    EXPECT_EQ(unbase64_new(tobase64_old(s1)), s1);
-    EXPECT_EQ(unbase64_new(tobase64_old(s2)), s2);
-    EXPECT_EQ(unbase64_new(tobase64_old(s3)), s3);
-
-    EXPECT_EQ(unbase64_old(tobase64_new(s1)), s1);
-    EXPECT_EQ(unbase64_old(tobase64_new(s2)), s2);
-    EXPECT_EQ(unbase64_old(tobase64_new(s3)), s3);
-}
-
-
-class PerformanceTest : public ::testing::Test
-{
-protected:
-    static void SetUpTestCase()
-    {
-        srand(time(nullptr));
-
-        string_plain.resize(iterations);
-        string_base64.resize(iterations);
-
-        for (size_t i = 0; i < iterations; i++)
-        {
-            fill_string_with_random(string_plain[i], data_size);
-            string_base64[i] = tobase64_new(string_plain[i]);
+    string s4 = "1234567890-=_+!@#$%^&*()qwertyuiop[]asdfghjkl;'zxcvbnm,./";
+    string s5;
+    for (unsigned char c = (unsigned char)255; c != 0; c--) {
+        s5 += c;
+    }
+    
+    string s6(s5);
+    std::reverse(s6.begin(), s6.end());
+    
+    string s7 = "a";
+    string s8 = "aa";
+    string s9 = "aaa";
+    string s10 = "aaaa";
+    
+    std::vector<string> vs(50);
+    for (size_t i = 0; i < vs.size(); i++) {
+        const int lenString = rand() % 300;
+        for (int j = 1; j <= lenString; j++) {
+            vs[i] += (char)(rand() % 256);
         }
     }
-
-    static constexpr size_t iterations = 10000;
-    static constexpr size_t data_size = 32;
-
-    static vector<string> string_plain;
-    static vector<string> string_base64;
-};
-
-vector<string> PerformanceTest::string_plain;
-vector<string> PerformanceTest::string_base64;
-
-
-
-TEST_F(PerformanceTest, old_encode)
-{
-    for (auto& i: string_plain)
-    {
-        string encoded = tobase64_old(i);
-        EXPECT_NE(i, encoded);
-        EXPECT_FALSE(encoded.empty());
+    
+    minTest1(s1);
+    minTest1(s2);
+    minTest1(s3);
+    minTest1(s4);
+    minTest1(s5);
+    minTest1(s6);
+    minTest1(s7);
+    minTest1(s8);
+    minTest1(s9);
+    minTest1(s10);
+    
+    for (const string &s: vs) {
+        minTest1(s);
     }
-}
-
-TEST_F(PerformanceTest, new_encode)
-{
-    for (auto& i: string_plain)
-    {
-        string encoded = tobase64_new(i);
-        EXPECT_NE(i, encoded);
-        EXPECT_FALSE(encoded.empty());
-    }
-}
-
-TEST_F(PerformanceTest, old_decode)
-{
-    for (auto& i: string_base64)
-    {
-        string decoded = unbase64_old(i);
-        EXPECT_NE(decoded, i);
-        EXPECT_FALSE(decoded.empty());
-    }
-}
-
-TEST_F(PerformanceTest, new_decode)
-{
-    for (auto& i: string_base64)
-    {
-        string decoded = unbase64_new(i);
-        EXPECT_NE(decoded, i);
-        EXPECT_FALSE(decoded.empty());
+    
+    /////////
+    // OLD //
+    /////////
+    
+    minTest2(s1);
+    minTest2(s2);
+    minTest2(s3);
+    minTest2(s4);
+    minTest2(s5);
+    minTest2(s6);
+    minTest2(s7);
+    minTest2(s8);
+    minTest2(s9);
+    minTest2(s10);
+    
+    for (const string &s: vs) {
+        minTest2(s);
     }
 }

@@ -12,6 +12,7 @@
 
 #include "../ssse3/dec_reshuffle.c"
 #include "../ssse3/enc_translate.c"
+#include "../ssse3/enc_translate_2.c"
 #include "../ssse3/enc_reshuffle.c"
 
 #endif	// __SSE4_1__
@@ -27,6 +28,17 @@ BASE64_ENC_FUNCTION(sse41)
 #endif
 }
 
+BASE64_ENC_FUNCTION(sse41_web)
+{
+    #ifdef __SSE4_1__
+    #include "../generic/enc_head.c"
+    #include "../ssse3/enc_loop_2.c"
+    #include "../generic/enc_tail.c"
+    #else
+    BASE64_ENC_STUB
+    #endif
+}
+
 BASE64_DEC_FUNCTION(sse41)
 {
 #ifdef __SSE4_1__
@@ -36,4 +48,15 @@ BASE64_DEC_FUNCTION(sse41)
 #else
 	BASE64_DEC_STUB
 #endif
+}
+
+BASE64_DEC_FUNCTION(sse41_web)
+{
+    #ifdef __SSE4_1__
+    #include "../generic/dec_head.c"
+    #include "../ssse3/dec_loop_2.c"
+    #include "../generic/dec_tail.c"
+    #else
+    BASE64_DEC_STUB
+    #endif
 }
