@@ -39,20 +39,20 @@ target_compile_options(${LIB} PRIVATE -Wno-implicit-fallthrough)
 
 
 #Tests
-include(CTest)
-enable_testing()
+#include(CTest)
+#enable_testing()
 
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIR})
+#find_package(GTest REQUIRED)
+#include_directories(${GTEST_INCLUDE_DIR})
 
-find_package(GMock REQUIRED)
-include_directories(${GMOCK_INCLUDE_DIRS})
+#find_package(GMock REQUIRED)
+#include_directories(${GMOCK_INCLUDE_DIRS})
 
-add_executable (${LIB}Test unittest/Base64Test.cpp)
-target_link_libraries(${LIB}Test ${LIB})
-target_link_libraries(${LIB}Test ssl crypto)
-target_link_libraries(${LIB}Test ${GTEST_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-add_test(NAME ${LIB}Test COMMAND ${LIB}Test --gtest_output=xml:gtestresults.xml --gtest_color=yes)
+#add_executable (${LIB}Test unittest/Base64Test.cpp)
+#target_link_libraries(${LIB}Test ${LIB})
+#target_link_libraries(${LIB}Test ssl crypto)
+#target_link_libraries(${LIB}Test ${GTEST_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
+#add_test(NAME ${LIB}Test COMMAND ${LIB}Test --gtest_output=xml:gtestresults.xml --gtest_color=yes)
 
 
 #Install
